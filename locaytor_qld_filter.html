@@ -13,8 +13,8 @@
   --nsw-bg:#fce4ec;--nsw-fill:#e57373;--list-w:370px;--radius:8px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;}
-.locaytor-wrap{position:relative;height:100vh;display:flex;flex-direction:column;}
+html,body{height:100%;overflow:hidden;}body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;}
+.locaytor-wrap{position:relative;height:100%;display:flex;flex-direction:column;}
 
 /* ── HEADER ── */
 .header{position:relative;z-index:100;background:#fff;border-bottom:1px solid var(--blight);padding:0 16px;height:48px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
@@ -184,13 +184,18 @@ body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;}
 <body><script>
 (function(){
   var allowed=['locaytor.com','www.locaytor.com','suburbtrends.github.io'];
-  var ref=document.referrer?new URL(document.referrer).hostname:'';
+  var host=window.location.hostname;
+  var ref='';
+  try{if(document.referrer)ref=new URL(document.referrer).hostname;}catch(e){}
   var inIframe=window.self!==window.top;
-  if(inIframe&&allowed.indexOf(ref)===-1){
-    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;font-size:14px;">Unauthorised embed</div>';
-  }
-  if(!inIframe&&allowed.indexOf(window.location.hostname)===-1){
-    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;font-size:14px;">This page must be viewed on locaytor.com</div>';
+  if(inIframe){
+    if(ref&&allowed.indexOf(ref)===-1){
+      document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;font-size:14px;">Unauthorised embed</div>';
+    }
+  } else {
+    if(allowed.indexOf(host)===-1){
+      document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;font-size:14px;">This page must be viewed on locaytor.com</div>';
+    }
   }
 })();
 </script>
