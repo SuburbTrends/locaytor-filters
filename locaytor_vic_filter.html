@@ -181,7 +181,19 @@ body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;}
 }
 </style>
 </head>
-<body>
+<body><script>
+(function(){
+  var allowed=['locaytor.com','www.locaytor.com','suburbtrends.github.io'];
+  var ref=document.referrer?new URL(document.referrer).hostname:'';
+  var inIframe=window.self!==window.top;
+  if(inIframe&&allowed.indexOf(ref)===-1){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;font-size:14px;">Unauthorised embed</div>';
+  }
+  if(!inIframe&&allowed.indexOf(window.location.hostname)===-1){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;font-size:14px;">This page must be viewed on locaytor.com</div>';
+  }
+})();
+</script>
 <div class="locaytor-wrap">
 
 <!-- ── HEADER with inline filters ── -->
