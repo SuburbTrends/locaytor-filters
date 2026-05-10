@@ -105,6 +105,23 @@ body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;marg
 .hl{font-size:13px;padding:6px 14px;border-radius:18px;background:var(--accent-light);color:var(--accent);text-decoration:none;font-weight:500;transition:all 0.15s;}.hl:hover{background:var(--accent);color:#fff;}
 @media(max-width:900px){.list-col{width:50%;min-width:280px;}.hero-panel{flex:1;min-width:0;}.fg-label{display:none;}.budget-range{width:80px;}.score-range{width:70px;}}
 @media(max-width:600px){.list-col{width:100%;}.hero-panel{display:none;}}
+
+.suburb-search{padding:8px 12px;border-bottom:1px solid var(--blight);position:relative;flex-shrink:0;background:#fafafa;}
+.suburb-search-input{width:100%;height:28px;padding:0 10px 0 28px;font-family:'Roboto',sans-serif;font-size:12px;border:1px solid var(--border);border-radius:14px;background:#fff;color:var(--text);outline:none;box-sizing:border-box;transition:border-color 0.15s,box-shadow 0.15s;}
+.suburb-search-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(66,133,244,0.12);}
+.suburb-search-input::placeholder{color:var(--text3);}
+.suburb-search-icon{position:absolute;left:20px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text3);}
+.suburb-search-clear{position:absolute;right:20px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:2px 4px;display:none;}
+.suburb-search-clear:hover{color:var(--text);}
+.suburb-drop{position:absolute;top:calc(100% - 1px);left:12px;right:12px;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-height:280px;overflow-y:auto;z-index:50;display:none;}
+.suburb-drop.show{display:block;}
+.suburb-row{padding:6px 12px;cursor:pointer;border-bottom:1px solid var(--blight);transition:background 0.08s;}
+.suburb-row:last-child{border-bottom:none;}
+.suburb-row:hover,.suburb-row.kbd{background:#f1f6ff;}
+.suburb-row-name{font-size:12px;font-weight:500;color:var(--text);}
+.suburb-row-name b{color:var(--accent);font-weight:600;}
+.suburb-row-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.suburb-drop-empty{padding:10px 12px;font-size:11px;color:var(--text3);text-align:center;}
 </style>
 </head>
 <body><script>
@@ -169,6 +186,12 @@ body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;marg
       <div class="list-state-dot"></div>
       <span class="list-state-name">Northern Territory</span>
       <span class="list-count"><b id="matchCount2">0</b> of <span id="totalCount2">0</span> SA2s</span>
+    </div>
+    <div class="suburb-search">
+      <svg class="suburb-search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" class="suburb-search-input" id="suburbInput" placeholder="Search suburb…" autocomplete="off" oninput="onSuburbInput()" onfocus="onSuburbInput()" onkeydown="onSuburbKey(event)">
+      <span class="suburb-search-clear" id="suburbClear" onclick="clearSuburb()">✕</span>
+      <div class="suburb-drop" id="suburbDrop"></div>
     </div>
     <div class="list-scroll" id="listScroll"><div id="listBody"></div></div>
     <div class="list-pag" id="pagination"></div>
@@ -257,6 +280,108 @@ function drawLine(canvas,labels,values,color,yPrefix,ySuffix){const dpr=2;const 
 function sel(idx){ai=idx;const sa2=filtered[idx],sc=sa2.score_raw;const col=scoreColor(sc),lb=scoreLabel(sc);const med=sa2.median>=1e6?`$${(sa2.median/1e6).toFixed(2)}M`:`$${Math.round(sa2.median/1000)}K`;document.getElementById('heroEmpty').style.display='none';const hi=document.getElementById('heroInner');hi.style.display='block';hi.innerHTML=`<div class="hero-banner"><div class="hero-banner-rank" style="border-color:${col};color:${col}">${idx+1}</div><div class="hero-banner-info"><div class="hero-banner-name">${sa2.sa2}</div><div class="hero-banner-sub">${sa2.sa3} · ${sa2.sa4}</div></div><div class="hero-banner-score"><div class="hero-score-label"><span class="hsl-num" style="color:${col}">${sc} / 100</span><span class="hsl-tag" style="color:${col}">${lb}</span></div><div class="hero-ring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="#eee" stroke-width="3.5"/><circle cx="26" cy="26" r="22" fill="none" stroke="${col}" stroke-width="3.5" stroke-dasharray="${(sc/100*2*Math.PI*22).toFixed(1)} ${((1-sc/100)*2*Math.PI*22).toFixed(1)}" stroke-linecap="round"/></svg><div class="hero-ring-val"><div class="hero-ring-num" style="color:${col}">${sc}</div></div></div></div></div><div class="hero-map">${buildHeroMap(sa2.sa2_code,sa2.sa3)}</div><div class="hero-metrics"><div class="hm"><div class="hm-label">Sale Median</div><div class="hm-val">${med}</div></div><div class="hm"><div class="hm-label">Gross Yield</div><div class="hm-val" style="color:${sa2["yield"]>4?'var(--green)':sa2["yield"]<3?'var(--red)':'var(--amber)'}">${sa2["yield"]}%</div></div><div class="hm"><div class="hm-label">1Y Growth</div><div class="hm-val" style="color:${sa2.g1y>0?'var(--green)':'var(--red)'}">${sa2.g1y>0?'+':''}${sa2.g1y}%</div></div></div><div class="hero-metrics"><div class="hm"><div class="hm-label">Days on Market</div><div class="hm-val">${sa2.dom}d</div></div><div class="hm"><div class="hm-label">Weekly Rent</div><div class="hm-val">${sa2.rent?'$'+sa2.rent:'—'}</div></div><div class="hm"><div class="hm-label">10Y Growth</div><div class="hm-val" style="color:${sa2.g10y>0?'var(--green)':'var(--red)'}">${sa2.g10y>0?'+':''}${sa2.g10y}%</div></div></div><div class="hero-metrics"><div class="hm"><div class="hm-label">Growth Gap</div><div class="hm-val">${sa2.growth_gap>0?'+':''}${sa2.growth_gap}%</div></div><div class="hm"><div class="hm-label">Buy Afford. (yrs)</div><div class="hm-val">${sa2.buy_aff}</div></div><div class="hm"><div class="hm-label">Rent Afford.</div><div class="hm-val">${sa2.rent_aff}%</div></div></div><div class="hero-metrics"><div class="hm"><div class="hm-label">Inventory</div><div class="hm-val">${sa2.inventory}</div></div><div class="hm"><div class="hm-label">Fully Owned</div><div class="hm-val">${sa2.fully_owned}%</div></div><div class="hm"><div class="hm-label">SEIFA</div><div class="hm-val">${sa2.seifa}</div></div></div><div class="hero-metrics"><div class="hm"><div class="hm-label">SA3 Vacancy</div><div class="hm-val" style="color:${sa2.sa3_vacancy<2.5?'var(--green)':sa2.sa3_vacancy>4?'var(--red)':'var(--amber)'}">${sa2.sa3_vacancy}%</div></div><div class="hm"><div class="hm-label">DOM Change (3M)</div><div class="hm-val" style="color:${sa2.dom_chg<0?'var(--green)':sa2.dom_chg>0?'var(--red)':'inherit'}">${sa2.dom_chg>0?'+':''}${sa2.dom_chg}%</div></div><div class="hm"><div class="hm-label">Rent Change (12m)</div><div class="hm-val" style="color:${sa2.rent_chg>0?'var(--green)':'var(--red)'}">${sa2.rent_chg>0?'+':''}${sa2.rent_chg}%</div></div></div><div class="hero-charts"><div class="chart-box"><h5>${sa2.sa3} — 10 Year Median Price</h5><canvas id="chart10y"></canvas></div><div class="chart-box"><h5>${sa2.sa3} — Inventory Trend</h5><canvas id="chartInv"></canvas></div><div class="chart-box"><h5>${sa2.sa3} — Rents Trend</h5><canvas id="chartRent"></canvas></div></div><div class="hero-links"><a class="hl" href="https://www.realestate.com.au/buy/in-${sa2.sa2.replace(/ \(.*\)$/,'').split(' - ')[0].trim().toLowerCase().replace(/ /g,'-')},+nt/list-1" target="_blank">REA Search</a><a class="hl" href="https://www.abs.gov.au/census/find-census-data/quickstats/2021/${sa2.sa2_code}" target="_blank">ABS QuickStats</a></div>`;document.getElementById('heroPanel').scrollTop=0;renderList();requestAnimationFrame(()=>{wireHeroHover();const t=SA3_10Y.data[sa2.sa3];if(t){const c=document.getElementById('chart10y');if(c)drawLine(c,SA3_10Y.quarters,t,'#4285f4','$','');}const inv=SA3_INV.data[sa2.sa3];if(inv){const c=document.getElementById('chartInv');if(c)drawLine(c,SA3_INV.months,inv,'#ea8600','','');}const rnt=SA3_RENTS.data[sa2.sa3];if(rnt){const c=document.getElementById('chartRent');if(c)drawLine(c,SA3_RENTS.months,rnt,'#34a853','$','');}});}
 
 initFilterUI();applyFilters();
+
+const SUBURB_INDEX=[{"s":"Acacia Hills (NT)","c":"701031035","sa3":"Litchfield"},{"s":"Alawa","c":"701021010","sa3":"Darwin Suburbs"},{"s":"Alice Springs","c":"702011045","sa3":"Alice Springs"},{"s":"Anula","c":"701021011","sa3":"Darwin Suburbs"},{"s":"Araluen (NT)","c":"702011048","sa3":"Alice Springs"},{"s":"Archer","c":"701041042","sa3":"Palmerston"},{"s":"Arumbera","c":"702011051","sa3":"Alice Springs"},{"s":"Bakewell","c":"701041036","sa3":"Palmerston"},{"s":"Bayview (NT)","c":"701011009","sa3":"Darwin City"},{"s":"Bees Creek","c":"701031034","sa3":"Litchfield"},{"s":"Bellamack","c":"701041043","sa3":"Palmerston"},{"s":"Berrimah","c":"701021012","sa3":"Darwin Suburbs"},{"s":"Berry Springs","c":"701031035","sa3":"Litchfield"},{"s":"Binjari","c":"702051067","sa3":"Katherine"},{"s":"Black Jungle","c":"701031035","sa3":"Litchfield"},{"s":"Blackmore","c":"701031035","sa3":"Litchfield"},{"s":"Braitling","c":"702011045","sa3":"Alice Springs"},{"s":"Brinkin","c":"701021013","sa3":"Darwin Suburbs"},{"s":"Casuarina (NT)","c":"701021013","sa3":"Darwin Suburbs"},{"s":"Channel Island","c":"701031035","sa3":"Litchfield"},{"s":"Ciccone","c":"702011045","sa3":"Alice Springs"},{"s":"Coconut Grove","c":"701021016","sa3":"Darwin Suburbs"},{"s":"Connellan","c":"702011051","sa3":"Alice Springs"},{"s":"Coolalinga","c":"701031034","sa3":"Litchfield"},{"s":"Coonawarra (NT)","c":"701021012","sa3":"Darwin Suburbs"},{"s":"Cossack (NT)","c":"702051067","sa3":"Katherine"},{"s":"Daly","c":"701031035","sa3":"Litchfield"},{"s":"Darwin River","c":"701031035","sa3":"Litchfield"},{"s":"Desert Springs","c":"702011049","sa3":"Alice Springs"},{"s":"Driver","c":"701041037","sa3":"Palmerston"},{"s":"Durack (NT)","c":"701041038","sa3":"Palmerston"},{"s":"East Side","c":"702011046","sa3":"Alice Springs"},{"s":"Emungalan","c":"702051067","sa3":"Katherine"},{"s":"Fannie Bay","c":"701011004","sa3":"Darwin City"},{"s":"Farrar","c":"701041041","sa3":"Palmerston"},{"s":"Florina","c":"702051067","sa3":"Katherine"},{"s":"Fly Creek","c":"701031035","sa3":"Litchfield"},{"s":"Flynn (NT)","c":"702011047","sa3":"Alice Springs"},{"s":"Freds Pass","c":"701031034","sa3":"Litchfield"},{"s":"Gillen","c":"702011047","sa3":"Alice Springs"},{"s":"Girraween (NT)","c":"701031032","sa3":"Litchfield"},{"s":"Gray (NT)","c":"701041039","sa3":"Palmerston"},{"s":"Gunn","c":"701041041","sa3":"Palmerston"},{"s":"Herbert","c":"701031032","sa3":"Litchfield"},{"s":"Holtze","c":"701031031","sa3":"Litchfield"},{"s":"Howard Springs","c":"701031031","sa3":"Litchfield"},{"s":"Hughes (NT)","c":"701031035","sa3":"Litchfield"},{"s":"Humpty Doo","c":"701031032","sa3":"Litchfield"},{"s":"Ilparpa","c":"702011051","sa3":"Alice Springs"},{"s":"Irlpme","c":"702011048","sa3":"Alice Springs"},{"s":"Jingili","c":"701021018","sa3":"Darwin Suburbs"},{"s":"Johnston","c":"701041042","sa3":"Palmerston"},{"s":"Karama","c":"701021019","sa3":"Darwin Suburbs"},{"s":"Katherine","c":"702051067","sa3":"Katherine"},{"s":"Katherine East","c":"702051067","sa3":"Katherine"},{"s":"Katherine South","c":"702051067","sa3":"Katherine"},{"s":"Kilgariff","c":"702011051","sa3":"Alice Springs"},{"s":"Knuckey Lagoon","c":"701021012","sa3":"Darwin Suburbs"},{"s":"Lambells Lagoon","c":"701031035","sa3":"Litchfield"},{"s":"Lansdowne (NT)","c":"702051067","sa3":"Katherine"},{"s":"Larapinta (NT)","c":"702011048","sa3":"Alice Springs"},{"s":"Larrakeyah","c":"701011005","sa3":"Darwin City"},{"s":"Leanyer","c":"701021020","sa3":"Darwin Suburbs"},{"s":"Lee Point","c":"701021021","sa3":"Darwin Suburbs"},{"s":"Livingstone","c":"701031035","sa3":"Litchfield"},{"s":"Lloyd Creek","c":"701031035","sa3":"Litchfield"},{"s":"Ludmilla","c":"701011006","sa3":"Darwin City"},{"s":"Lyons (NT)","c":"701021021","sa3":"Darwin Suburbs"},{"s":"Malak","c":"701021022","sa3":"Darwin Suburbs"},{"s":"Manbulloo","c":"702051067","sa3":"Katherine"},{"s":"Manton (NT)","c":"701031035","sa3":"Litchfield"},{"s":"Marlow Lagoon","c":"701041038","sa3":"Palmerston"},{"s":"Marrara","c":"701021022","sa3":"Darwin Suburbs"},{"s":"McMinns Lagoon","c":"701031032","sa3":"Litchfield"},{"s":"Middle Point","c":"701031035","sa3":"Litchfield"},{"s":"Millner","c":"701021023","sa3":"Darwin Suburbs"},{"s":"Mitchell (NT)","c":"701041042","sa3":"Palmerston"},{"s":"Moil","c":"701021024","sa3":"Darwin Suburbs"},{"s":"Moulden","c":"701041040","sa3":"Palmerston"},{"s":"Mount Johns","c":"702011049","sa3":"Alice Springs"},{"s":"Muirhead","c":"701021021","sa3":"Darwin Suburbs"},{"s":"Nakara","c":"701021013","sa3":"Darwin Suburbs"},{"s":"Nightcliff","c":"701021025","sa3":"Darwin Suburbs"},{"s":"Noonamah","c":"701031035","sa3":"Litchfield"},{"s":"Palmerston City","c":"701041038","sa3":"Palmerston"},{"s":"Parap","c":"701011007","sa3":"Darwin City"},{"s":"Pinelands (NT)","c":"701041038","sa3":"Palmerston"},{"s":"Rapid Creek","c":"701021026","sa3":"Darwin Suburbs"},{"s":"Rosebery (NT)","c":"701041043","sa3":"Palmerston"},{"s":"Ross (NT)","c":"702011051","sa3":"Alice Springs"},{"s":"Sadadeen","c":"702011046","sa3":"Alice Springs"},{"s":"Southport (NT)","c":"701031035","sa3":"Litchfield"},{"s":"Stuart (NT)","c":"702011045","sa3":"Alice Springs"},{"s":"Stuart Park","c":"701011008","sa3":"Darwin City"},{"s":"The Gap (NT)","c":"702011049","sa3":"Alice Springs"},{"s":"The Gardens (NT)","c":"701011004","sa3":"Darwin City"},{"s":"The Narrows (NT)","c":"701011006","sa3":"Darwin City"},{"s":"Tindal","c":"702051067","sa3":"Katherine"},{"s":"Tiwi","c":"701021027","sa3":"Darwin Suburbs"},{"s":"Tumbling Waters","c":"701031035","sa3":"Litchfield"},{"s":"Undoolya","c":"702011046","sa3":"Alice Springs"},{"s":"Uralla (NT)","c":"702051067","sa3":"Katherine"},{"s":"Venn","c":"702051067","sa3":"Katherine"},{"s":"Virginia (NT)","c":"701031034","sa3":"Litchfield"},{"s":"Wagaman","c":"701021028","sa3":"Darwin Suburbs"},{"s":"Wak Wak","c":"701031035","sa3":"Litchfield"},{"s":"Wanguri","c":"701021029","sa3":"Darwin Suburbs"},{"s":"Weddell","c":"701031035","sa3":"Litchfield"},{"s":"White Gums","c":"702011051","sa3":"Alice Springs"},{"s":"Wickham (NT)","c":"701031035","sa3":"Litchfield"},{"s":"Winnellie","c":"701011009","sa3":"Darwin City"},{"s":"Woodroffe","c":"701041044","sa3":"Palmerston"},{"s":"Woolner","c":"701011009","sa3":"Darwin City"},{"s":"Wulagi","c":"701021030","sa3":"Darwin Suburbs"},{"s":"Yarrawonga (NT)","c":"701041041","sa3":"Palmerston"},{"s":"Zuccoli","c":"701041042","sa3":"Palmerston"}];
+
+let subKbdIdx = -1;
+let subResults = [];
+
+function onSuburbInput(){
+  const q = document.getElementById('suburbInput').value.trim().toLowerCase();
+  document.getElementById('suburbClear').style.display = q ? 'block' : 'none';
+  const drop = document.getElementById('suburbDrop');
+  if(!q){ drop.classList.remove('show'); subResults = []; subKbdIdx = -1; return; }
+  const starts = [], contains = [];
+  for(const s of SUBURB_INDEX){
+    const n = s.s.toLowerCase();
+    if(n.startsWith(q)) starts.push(s);
+    else if(n.includes(q)) contains.push(s);
+    if(starts.length >= 10) break;
+  }
+  subResults = [...starts, ...contains].slice(0, 10);
+  subKbdIdx = -1;
+  if(subResults.length === 0){
+    drop.innerHTML = '<div class="suburb-drop-empty">No suburb matches "'+q.replace(/[<>&"]/g,'')+'"</div>';
+    drop.classList.add('show');
+    return;
+  }
+  const qLen = q.length;
+  drop.innerHTML = subResults.map((r,i)=>{
+    const idx = r.s.toLowerCase().indexOf(q);
+    let name = r.s;
+    if(idx !== -1){
+      name = r.s.substring(0,idx) + '<b>' + r.s.substring(idx,idx+qLen) + '</b>' + r.s.substring(idx+qLen);
+    }
+    return `<div class="suburb-row" data-idx="${i}" onclick="pickSuburb(${i})"><div class="suburb-row-name">${name}</div><div class="suburb-row-sub">SA2: ${SUBURB_INDEX_findSA2Name(r.c)} · ${r.sa3}</div></div>`;
+  }).join('');
+  drop.classList.add('show');
+}
+
+function SUBURB_INDEX_findSA2Name(code){
+  const m = SA2_DATA.find(d => d.sa2_code === code);
+  return m ? m.sa2 : '';
+}
+
+function clearSuburb(){
+  document.getElementById('suburbInput').value = '';
+  document.getElementById('suburbClear').style.display = 'none';
+  document.getElementById('suburbDrop').classList.remove('show');
+  subResults = []; subKbdIdx = -1;
+}
+
+function pickSuburb(i){
+  const r = subResults[i];
+  if(!r) return;
+  let idx = filtered.findIndex(d => d.sa2_code === r.c);
+  if(idx === -1){
+    resetFilters();
+    applyFilters();
+    idx = filtered.findIndex(d => d.sa2_code === r.c);
+  }
+  if(idx !== -1){
+    cp = Math.floor(idx / PS);
+    sel(idx);
+    setTimeout(() => {
+      const act = document.querySelector('.sa2-card.active');
+      if(act) act.scrollIntoView({block:'center', behavior:'smooth'});
+    }, 80);
+  }
+  document.getElementById('suburbInput').value = r.s;
+  document.getElementById('suburbDrop').classList.remove('show');
+}
+
+function onSuburbKey(e){
+  const drop = document.getElementById('suburbDrop');
+  if(!drop.classList.contains('show')) return;
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    subKbdIdx = Math.min(subKbdIdx + 1, subResults.length - 1);
+    updateKbdHighlight();
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    subKbdIdx = Math.max(subKbdIdx - 1, 0);
+    updateKbdHighlight();
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    pickSuburb(subKbdIdx >= 0 ? subKbdIdx : 0);
+  } else if(e.key === 'Escape'){
+    clearSuburb();
+  }
+}
+
+function updateKbdHighlight(){
+  document.querySelectorAll('.suburb-row').forEach((el,i)=>{
+    el.classList.toggle('kbd', i === subKbdIdx);
+    if(i === subKbdIdx) el.scrollIntoView({block:'nearest'});
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.suburb-search')){
+    document.getElementById('suburbDrop')?.classList.remove('show');
+  }
+});
+
 </script>
 </body>
 </html>
